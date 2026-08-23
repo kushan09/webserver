@@ -3,9 +3,14 @@
 # Transitive packages are pinned by pip; if you want a full lockfile run:
 #     pip freeze > requirements.lock.txt
 
+# CPU-only builds of torch/torchvision — deployment targets (Railway) have no
+# GPU, and the default PyPI wheels bundle CUDA and are several GB larger.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 # Deep learning
 torch==2.11.0
 torchvision==0.26.0
+numpy==2.2.6
 
 # Image handling
 pillow==12.2.0
@@ -14,9 +19,14 @@ pillow==12.2.0
 tqdm==4.67.3
 scikit-learn==1.8.0
 
-# Web dashboard
+# Web dashboard (app.py)
 Flask==3.1.3
 flask-sock==0.7.0
+
+# Web dashboard + ESP32 bridge (Backend/server.py)
+flask-socketio==5.5.1
+python-socketio==5.13.0
+websockets==15.0.1
 
 # Face landmark detection (for eye-region crops in the dashboard)
 mediapipe==0.10.35

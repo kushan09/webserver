@@ -436,6 +436,11 @@ def preview():
     return Response(PREVIEW_HTML, mimetype="text/html")
 
 
+@app.get("/health")
+def health():
+    return jsonify(status="ok", device=DEVICE)
+
+
 # ---------- Embedded preview page ----------
 PREVIEW_HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -642,12 +647,16 @@ async def _esp32_ws_handler(websocket):
         print(f"[WS] Connection closed: {e}")
 
 
+WS_PORT = int(os.getenv("WS_PORT", 5002))
+HTTP_PORT = int(os.getenv("PORT", 5001))
+
+
 def _start_ws_thread():
     import websockets
 
     async def _serve():
-        async with websockets.serve(_esp32_ws_handler, "0.0.0.0", 5002):
-            print("[WS] ESP32 WebSocket server listening on ws://0.0.0.0:5002")
+        async with websockets.serve(_esp32_ws_handler, "0.0.0.0", WS_PORT):
+            print(f"[WS] ESP32 WebSocket server listening on ws://0.0.0.0:{WS_PORT}")
             await asyncio.get_running_loop().create_future()  # run forever
 
     loop = asyncio.new_event_loop()
@@ -661,7 +670,7 @@ if __name__ == "__main__":
     ws_thread.start()
 
     print(f"\nStarting servers (device={DEVICE})")
-    print("ESP32 WebSocket : ws://0.0.0.0:5002")
-    print("HTTP POST       : http://0.0.0.0:5001/detect  (alternative)")
-    print("Preview         : http://localhost:5001/preview\n")
-    socketio.run(app, host="0.0.0.0", port=5001, debug=False, allow_unsafe_werkzeug=True)
+    print(f"ESP32 WebSocket : ws://0.0.0.0:{WS_PORT}")
+    print(f"HTTP POST       : http://0.0.0.0:{HTTP_PORT}/detect  (alternative)")
+    print(f"Preview         : http://localhost:{HTTP_PORT}/preview\n")
+    socketio.run(app, host="0.0.0.0", port=HTTP_PORT, debug=False, allow_unsafe_werkzeug=True)
