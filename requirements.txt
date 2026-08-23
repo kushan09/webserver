@@ -1,0 +1,22 @@
+# Drowsiness detection — direct dependencies
+# Tested with Python 3.12 on macOS (Apple Silicon, MPS backend).
+# Transitive packages are pinned by pip; if you want a full lockfile run:
+#     pip freeze > requirements.lock.txt
+
+# Deep learning
+torch==2.11.0
+torchvision==0.26.0
+
+# Image handling
+pillow==12.2.0
+
+# Training utilities
+tqdm==4.67.3
+scikit-learn==1.8.0
+
+# Web dashboard
+Flask==3.1.3
+flask-sock==0.7.0
+
+# Face landmark detection (for eye-region crops in the dashboard)
+mediapipe==0.10.35

@@ -1,0 +1,31 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+build/
+dist/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Secrets / credentials ---
+# Never commit real .env files or Firebase service-account keys (see
+# firebase-setup-guide.md) — only an .env.example should be tracked.
+.env
+.env.*
+!.env.example
+*firebase-service-account*.json
+*serviceAccount*.json
+*credentials*.json
+*.pem
+*.key
+
+# --- OS cruft ---
+.DS_Store
+
+# --- Editors ---
+.vscode/
+.idea/

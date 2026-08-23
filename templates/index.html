@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Drowsiness Dashboard</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --alert: #22c55e;
+    --drowsy: #ef4444;
+    --warn: #f59e0b;
+    --neutral: #64748b;
+    --accent: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+  }
+  h1 { margin: 0 0 4px; font-size: 24px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  .device { color: var(--accent); font-family: monospace; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+    max-width: 1150px;
+    width: 100%;
+  }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card { background: var(--panel); border-radius: 12px; padding: 16px; }
+
+  .video-wrap { position: relative; }
+  video, canvas.overlay {
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+  }
+  video { background: #000; }
+  canvas.overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: transparent;
+  }
+  canvas.capture { display: none; }
+
+  .controls { display: flex; gap: 8px; margin-top: 12px; }
+  button {
+    flex: 1; padding: 10px 14px; border: none; border-radius: 8px;
+    background: var(--accent); color: #0f172a;
+    font-weight: 600; cursor: pointer; font-size: 14px;
+  }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: #334155; color: var(--text); }
+
+  .status-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .overall {
+    font-size: 38px; font-weight: 700; margin-bottom: 8px;
+  }
+  .overall.alert  { color: var(--alert); }
+  .overall.drowsy { color: var(--drowsy); }
+  .overall.idle, .overall.no { color: var(--muted); font-size: 22px; }
+
+  .score-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 4px; font-size: 13px; color: var(--muted);
+  }
+  .score-row .val { color: var(--text); font-family: monospace; font-size: 15px; }
+  .score-bar {
+    position: relative;
+    height: 10px; background: #334155; border-radius: 5px;
+    overflow: hidden; margin-bottom: 4px;
+  }
+  .score-bar .fill { height: 100%; transition: width 0.2s ease, background 0.2s; }
+  .score-bar .threshold-marker {
+    position: absolute; top: -3px; bottom: -3px;
+    width: 2px; background: var(--text); opacity: 0.4;
+  }
+  .threshold-label {
+    font-size: 11px; color: var(--muted); text-align: right; margin-bottom: 14px;
+  }
+
+  .triples {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; margin-bottom: 14px;
+  }
+  .triple {
+    background: #0f172a; border-radius: 8px; padding: 8px; text-align: center;
+  }
+  .triple .name {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .triple .val { font-size: 14px; font-weight: 700; }
+  .triple .val.awake, .triple .val.not_yawning { color: var(--alert); }
+  .triple .val.sleepy, .triple .val.yawning    { color: var(--drowsy); }
+  .triple .val.no { color: var(--neutral); }
+  .triple .conf {
+    font-size: 11px; color: var(--muted); margin-top: 2px; font-family: monospace;
+  }
+
+  .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); margin: 12px 0 6px;
+  }
+
+  .bar-row { margin-bottom: 6px; }
+  .bar-row .name {
+    display: flex; justify-content: space-between;
+    font-size: 12px; margin-bottom: 3px;
+  }
+  .bar {
+    height: 5px; background: #334155; border-radius: 3px; overflow: hidden;
+  }
+  .bar > div { height: 100%; transition: width 0.2s ease; }
+  .fill-alert  { background: var(--alert); }
+  .fill-drowsy { background: var(--drowsy); }
+
+  .meta {
+    font-size: 12px; color: var(--muted);
+    margin-top: 14px; line-height: 1.6;
+  }
+  .meta code {
+    background: #0f172a; padding: 1px 6px; border-radius: 4px; color: var(--accent);
+  }
+
+  /* ── ESP32 panel ── */
+  .esp32-panel {
+    max-width: 1150px; width: 100%; margin-top: 20px;
+  }
+  .esp32-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .esp32-header h2 { margin: 0; font-size: 16px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--neutral); flex-shrink: 0;
+    transition: background 0.4s;
+  }
+  .dot.on  { background: var(--alert); box-shadow: 0 0 6px var(--alert); }
+  .dot.off { background: var(--drowsy); }
+  .esp32-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 700px) {
+    .esp32-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .esp32-tile {
+    background: var(--panel); border-radius: 10px;
+    padding: 14px 12px; text-align: center;
+  }
+  .esp32-tile .name {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .esp32-tile .big {
+    font-size: 28px; font-weight: 700; line-height: 1;
+  }
+  .esp32-tile .sub  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .big.alert  { color: var(--alert); }
+  .big.drowsy { color: var(--drowsy); }
+  .big.muted  { color: var(--neutral); }
+</style>
+</head>
+<body>
+  <h1>Drowsiness Dashboard</h1>
+  <div class="sub">
+    Eye + Yawn MobileNetV2 &middot; MediaPipe face landmarks &middot;
+    device <span class="device">{{ device }}</span> &middot;
+    score = {{ eye_weight }}·eye_sleepy + {{ yawn_weight }}·yawn (threshold {{ threshold }})
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="video-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay" class="overlay"></canvas>
+      </div>
+      <canvas id="capture" class="capture"></canvas>
+      <div class="controls">
+        <button id="startBtn">Start camera</button>
+        <button id="stopBtn" class="secondary" disabled>Stop</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="status-label">Overall</div>
+      <div id="overall" class="overall idle">— waiting —</div>
+
+      <div class="score-row">
+        <span>Drowsiness score</span>
+        <span class="val" id="scoreVal">0.000</span>
+      </div>
+      <div class="score-bar">
+        <div id="scoreFill" class="fill fill-alert" style="width:0%"></div>
+        <div id="scoreThresh" class="threshold-marker" style="left:50%"></div>
+      </div>
+      <div class="threshold-label">threshold = <span id="threshLabel">0.50</span></div>
+
+      <div class="triples">
+        <div class="triple">
+          <div class="name">Left eye</div>
+          <div id="leftLabel" class="val no">—</div>
+          <div id="leftConf"  class="conf">—</div>
+        </div>
+        <div class="triple">
+          <div class="name">Right eye</div>
+          <div id="rightLabel" class="val no">—</div>
+          <div id="rightConf"  class="conf">—</div>
+        </div>
+        <div class="triple">
+          <div class="name">Mouth</div>
+          <div id="mouthLabel" class="val no">—</div>
+          <div id="mouthConf"  class="conf">—</div>
+        </div>
+      </div>
+
+      <div class="section-title">Eye sleepy probability</div>
+      <div class="bar-row">
+        <div class="name"><span>left</span><span id="lSleepyPct">0%</span></div>
+        <div class="bar"><div id="lSleepyBar" class="fill-drowsy" style="width:0%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="name"><span>right</span><span id="rSleepyPct">0%</span></div>
+        <div class="bar"><div id="rSleepyBar" class="fill-drowsy" style="width:0%"></div></div>
+      </div>
+
+      <div class="section-title">Yawn probability</div>
+      <div class="bar-row">
+        <div class="name"><span>mouth</span><span id="yawnPct">0%</span></div>
+        <div class="bar"><div id="yawnBar" class="fill-drowsy" style="width:0%"></div></div>
+      </div>
+
+      <div class="meta">
+        Frames sent: <code id="frameCount">0</code><br>
+        Last latency: <code id="latency">—</code><br>
+        Interval: <code>500 ms</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ESP32-CAM Panel ── -->
+  <div class="esp32-panel card">
+    <div class="esp32-header">
+      <div id="esp32Dot" class="dot"></div>
+      <h2>ESP32-CAM</h2>
+      <span id="esp32ConnLabel" style="font-size:12px;color:var(--muted)">disconnected</span>
+    </div>
+    <div class="esp32-grid">
+      <div class="esp32-tile">
+        <div class="name">Status</div>
+        <div id="esp32Status" class="big muted">—</div>
+        <div class="sub" id="esp32Score">score —</div>
+      </div>
+      <div class="esp32-tile">
+        <div class="name">Eyes</div>
+        <div id="esp32Eye" class="big muted">—</div>
+      </div>
+      <div class="esp32-tile">
+        <div class="name">Yawn</div>
+        <div id="esp32Yawn" class="big muted">—</div>
+      </div>
+      <div class="esp32-tile">
+        <div class="name">Face</div>
+        <div id="esp32Face" class="big muted">—</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const THRESHOLD = {{ threshold }};
+
+const video      = document.getElementById('video');
+const overlay    = document.getElementById('overlay');
+const capture    = document.getElementById('capture');
+const startBtn   = document.getElementById('startBtn');
+const stopBtn    = document.getElementById('stopBtn');
+
+const overallEl  = document.getElementById('overall');
+const scoreVal   = document.getElementById('scoreVal');
+const scoreFill  = document.getElementById('scoreFill');
+const scoreThresh= document.getElementById('scoreThresh');
+const threshLabel= document.getElementById('threshLabel');
+
+const leftLabel  = document.getElementById('leftLabel');
+const leftConf   = document.getElementById('leftConf');
+const rightLabel = document.getElementById('rightLabel');
+const rightConf  = document.getElementById('rightConf');
+const mouthLabel = document.getElementById('mouthLabel');
+const mouthConf  = document.getElementById('mouthConf');
+
+const lSleepyPct = document.getElementById('lSleepyPct');
+const rSleepyPct = document.getElementById('rSleepyPct');
+const lSleepyBar = document.getElementById('lSleepyBar');
+const rSleepyBar = document.getElementById('rSleepyBar');
+const yawnPct    = document.getElementById('yawnPct');
+const yawnBar    = document.getElementById('yawnBar');
+
+const frameCountEl = document.getElementById('frameCount');
+const latencyEl    = document.getElementById('latency');
+
+threshLabel.textContent = THRESHOLD.toFixed(2);
+scoreThresh.style.left = (THRESHOLD * 100) + '%';
+
+let stream = null;
+let timer  = null;
+let frames = 0;
+let inFlight = false;
+
+async function start() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+    video.srcObject = stream;
+    startBtn.disabled = true;
+    stopBtn.disabled  = false;
+    timer = setInterval(captureAndSend, 500);
+  } catch (err) {
+    alert('Could not access camera: ' + err.message);
+  }
+}
+
+function stop() {
+  if (timer)  { clearInterval(timer); timer = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  video.srcObject = null;
+  startBtn.disabled = false;
+  stopBtn.disabled  = true;
+  overallEl.className = 'overall idle';
+  overallEl.textContent = '— stopped —';
+  clearOverlay();
+}
+
+function clearOverlay() {
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+}
+
+function drawBoxes(data) {
+  overlay.width  = video.clientWidth;
+  overlay.height = video.clientHeight;
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  if (!data.face) return;
+  const sx = overlay.width  / capture.width;
+  const sy = overlay.height / capture.height;
+  ctx.lineWidth = 3;
+
+  // Eyes: green if awake, red if sleepy
+  for (const eye of [data.left, data.right]) {
+    if (!eye) continue;
+    const [x0, y0, x1, y1] = eye.bbox;
+    ctx.strokeStyle = eye.label === 'sleepy' ? '#ef4444' : '#22c55e';
+    ctx.strokeRect(x0 * sx, y0 * sy, (x1 - x0) * sx, (y1 - y0) * sy);
+  }
+  // Mouth: green if not yawning, red if yawning
+  if (data.mouth) {
+    const [x0, y0, x1, y1] = data.mouth.bbox;
+    ctx.strokeStyle = data.mouth.label === 'yawning' ? '#ef4444' : '#22c55e';
+    ctx.strokeRect(x0 * sx, y0 * sy, (x1 - x0) * sx, (y1 - y0) * sy);
+  }
+}
+
+function setTriple(labelEl, confEl, pred) {
+  if (!pred) {
+    labelEl.className = 'val no';
+    labelEl.textContent = '—';
+    confEl.textContent  = '—';
+    return;
+  }
+  labelEl.className = 'val ' + pred.label;
+  labelEl.textContent = pred.label.replace('_', ' ').toUpperCase();
+  confEl.textContent  = (pred.confidence * 100).toFixed(1) + '%';
+}
+
+function setBar(pctEl, barEl, value) {
+  const p = (value * 100).toFixed(1);
+  pctEl.textContent = p + '%';
+  barEl.style.width = p + '%';
+}
+
+async function captureAndSend() {
+  if (inFlight || video.videoWidth === 0) return;
+  inFlight = true;
+
+  capture.width  = video.videoWidth;
+  capture.height = video.videoHeight;
+  capture.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = capture.toDataURL('image/jpeg', 0.7);
+
+  const t0 = performance.now();
+  try {
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataUrl }),
+    });
+    const data = await res.json();
+    const dt = Math.round(performance.now() - t0);
+    frames += 1;
+    frameCountEl.textContent = frames;
+    latencyEl.textContent = dt + ' ms';
+
+    if (!data.face) {
+      overallEl.className = 'overall no';
+      overallEl.textContent = 'NO FACE DETECTED';
+      scoreVal.textContent = '0.000';
+      scoreFill.style.width = '0%';
+      scoreFill.className = 'fill fill-alert';
+      setTriple(leftLabel,  leftConf,  null);
+      setTriple(rightLabel, rightConf, null);
+      setTriple(mouthLabel, mouthConf, null);
+      setBar(lSleepyPct, lSleepyBar, 0);
+      setBar(rSleepyPct, rSleepyBar, 0);
+      setBar(yawnPct,    yawnBar,    0);
+      clearOverlay();
+      return;
+    }
+
+    overallEl.className = 'overall ' + data.overall;
+    overallEl.textContent = data.overall.toUpperCase();
+
+    scoreVal.textContent = data.score.toFixed(3);
+    scoreFill.style.width = (data.score * 100).toFixed(1) + '%';
+    scoreFill.className = 'fill ' + (data.overall === 'drowsy' ? 'fill-drowsy' : 'fill-alert');
+
+    setTriple(leftLabel,  leftConf,  data.left);
+    setTriple(rightLabel, rightConf, data.right);
+    setTriple(mouthLabel, mouthConf, data.mouth);
+
+    setBar(lSleepyPct, lSleepyBar, data.left.probs.sleepy);
+    setBar(rSleepyPct, rSleepyBar, data.right.probs.sleepy);
+    setBar(yawnPct,    yawnBar,    data.mouth.probs.yawning);
+
+    drawBoxes(data);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    inFlight = false;
+  }
+}
+
+startBtn.addEventListener('click', start);
+stopBtn.addEventListener('click', stop);
+
+// ── ESP32-CAM live status ──────────────────────────────────────────────────
+const esp32Dot       = document.getElementById('esp32Dot');
+const esp32ConnLabel = document.getElementById('esp32ConnLabel');
+const esp32Status    = document.getElementById('esp32Status');
+const esp32Score     = document.getElementById('esp32Score');
+const esp32Eye       = document.getElementById('esp32Eye');
+const esp32Yawn      = document.getElementById('esp32Yawn');
+const esp32Face      = document.getElementById('esp32Face');
+
+let esp32LastTs = 0;
+
+async function pollEsp32() {
+  try {
+    const res  = await fetch('/esp32/status');
+    const data = await res.json();
+
+    const alive = data.connected && data.ts && (Date.now()/1000 - data.ts) < 5;
+
+    esp32Dot.className       = 'dot ' + (alive ? 'on' : 'off');
+    esp32ConnLabel.textContent = alive ? 'connected' : 'disconnected';
+
+    if (!alive || data.ts === esp32LastTs) return;
+    esp32LastTs = data.ts;
+
+    if (!data.face) {
+      esp32Status.className = 'big muted'; esp32Status.textContent = 'NO FACE';
+      esp32Score.textContent = 'score —';
+      esp32Eye.className = 'big muted';  esp32Eye.textContent  = '—';
+      esp32Yawn.className = 'big muted'; esp32Yawn.textContent = '—';
+      esp32Face.className = 'big muted'; esp32Face.textContent = '—';
+      return;
+    }
+
+    const isDrowsy = data.drowsy === 1;
+    esp32Status.className   = 'big ' + (isDrowsy ? 'drowsy' : 'alert');
+    esp32Status.textContent = isDrowsy ? 'DROWSY' : 'ALERT';
+    esp32Score.textContent  = 'score ' + (data.score ?? 0).toFixed(3);
+
+    esp32Eye.className   = 'big ' + (data.eye  ? 'drowsy' : 'alert');
+    esp32Eye.textContent = data.eye  ? 'CLOSED' : 'OPEN';
+
+    esp32Yawn.className   = 'big ' + (data.yawn ? 'drowsy' : 'alert');
+    esp32Yawn.textContent = data.yawn ? 'YAWNING' : 'NORMAL';
+
+    esp32Face.className   = 'big alert';
+    esp32Face.textContent = 'DETECTED';
+  } catch (_) { /* server not yet up */ }
+}
+
+setInterval(pollEsp32, 1000);
+pollEsp32();
+</script>
+</body>
+</html>

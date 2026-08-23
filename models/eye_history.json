@@ -1,0 +1,121 @@
+{
+  "backbone": "efficientnet_b0",
+  "history": [
+    {
+      "epoch": 1,
+      "tr_loss": 0.1782,
+      "tr_acc": 0.973,
+      "val_loss": 0.1399,
+      "val_acc": 0.9893
+    },
+    {
+      "epoch": 2,
+      "tr_loss": 0.1485,
+      "tr_acc": 0.9858,
+      "val_loss": 0.1404,
+      "val_acc": 0.9895
+    },
+    {
+      "epoch": 3,
+      "tr_loss": 0.1433,
+      "tr_acc": 0.988,
+      "val_loss": 0.1363,
+      "val_acc": 0.9911
+    },
+    {
+      "epoch": 4,
+      "tr_loss": 0.1414,
+      "tr_acc": 0.9884,
+      "val_loss": 0.1363,
+      "val_acc": 0.9912
+    },
+    {
+      "epoch": 5,
+      "tr_loss": 0.1396,
+      "tr_acc": 0.9895,
+      "val_loss": 0.1348,
+      "val_acc": 0.9916
+    },
+    {
+      "epoch": 6,
+      "tr_loss": 0.1376,
+      "tr_acc": 0.9901,
+      "val_loss": 0.1375,
+      "val_acc": 0.9904
+    },
+    {
+      "epoch": 7,
+      "tr_loss": 0.1366,
+      "tr_acc": 0.9906,
+      "val_loss": 0.136,
+      "val_acc": 0.9908
+    },
+    {
+      "epoch": 8,
+      "tr_loss": 0.1345,
+      "tr_acc": 0.9912,
+      "val_loss": 0.1354,
+      "val_acc": 0.9912
+    },
+    {
+      "epoch": 9,
+      "tr_loss": 0.1338,
+      "tr_acc": 0.9922,
+      "val_loss": 0.1346,
+      "val_acc": 0.9914
+    },
+    {
+      "epoch": 10,
+      "tr_loss": 0.1318,
+      "tr_acc": 0.9931,
+      "val_loss": 0.1353,
+      "val_acc": 0.9908
+    },
+    {
+      "epoch": 11,
+      "tr_loss": 0.1307,
+      "tr_acc": 0.993,
+      "val_loss": 0.1371,
+      "val_acc": 0.9907
+    },
+    {
+      "epoch": 12,
+      "tr_loss": 0.1297,
+      "tr_acc": 0.9938,
+      "val_loss": 0.1344,
+      "val_acc": 0.9921
+    },
+    {
+      "epoch": 13,
+      "tr_loss": 0.1282,
+      "tr_acc": 0.9947,
+      "val_loss": 0.1369,
+      "val_acc": 0.9903
+    },
+    {
+      "epoch": 14,
+      "tr_loss": 0.1271,
+      "tr_acc": 0.9952,
+      "val_loss": 0.1369,
+      "val_acc": 0.9911
+    },
+    {
+      "epoch": 15,
+      "tr_loss": 0.1269,
+      "tr_acc": 0.9954,
+      "val_loss": 0.1366,
+      "val_acc": 0.9915
+    },
+    {
+      "epoch": 16,
+      "tr_loss": 0.1257,
+      "tr_acc": 0.9961,
+      "val_loss": 0.1365,
+      "val_acc": 0.9912
+    }
+  ],
+  "best_val_loss": 0.1344,
+  "best_val_acc": 0.9921,
+  "test_loss": 0.1335,
+  "test_acc": 0.9921
+}
