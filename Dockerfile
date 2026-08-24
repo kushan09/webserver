@@ -1,7 +1,9 @@
 FROM python:3.12-slim
 
-# opencv (pulled in transitively by mediapipe) is built against these X11/GL
-# libs even though it's only used headlessly here.
+# opencv (pulled in transitively by mediapipe) is built against X11/GL libs,
+# and mediapipe's own native core is linked against GLES/EGL for optional GPU
+# delegates -- both need these present to even dlopen, even though this app
+# only runs CPU inference.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1 \
@@ -11,6 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     libxcb1 \
     libgomp1 \
+    libgles2 \
+    libegl1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
